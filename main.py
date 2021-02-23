@@ -1,6 +1,7 @@
 import time
 import json
 from selenium import webdriver
+from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
@@ -26,10 +27,15 @@ def A(browser, query):
     time.sleep(3)
 
     # 当前融资
-    res = browser.find_element_by_xpath("//tbody/tr/td[2]/div/div/div[2]/div[@class='AgencyDiv']/span[contains(text("
-                                        "), '轮')]").text
-    DATA['当前融资'] = res
-    print(f'当前融资: {res}')
+    try:
+        res = browser.find_element_by_xpath(
+            "//tbody/tr/td[2]/div/div/div[2]/div[@class='AgencyDiv']/span[contains(text("
+            "), '轮')]").text
+    except:
+        res = ""
+    finally:
+        DATA['当前融资'] = res
+        print(f'当前融资: {res}')
 
     link = browser.find_element_by_xpath('//tbody/tr/td[2]/div/div/div[2]/span[1]')
     link.click()
@@ -39,6 +45,24 @@ def A(browser, query):
     time.sleep(3)
 
     print("抓取基本信息...")
+
+    # 硬科技评级指数
+    res = browser.find_element_by_xpath("//div[@class='comdetailstop_right']"
+                                        "//div[@class='middle_right']"
+                                        "//div[@class='item'][1]"
+                                        "//div[@class='itembottom']"
+                                        "/span").text
+    DATA['硬科技评级指数'] = res
+    print(f"硬科技评级指数: {res}")
+
+    # 专利量
+    res = browser.find_element_by_xpath("//div[@class='comdetailstop_right']"
+                                        "//div[@class='middle_right']"
+                                        "//div[@class='item'][2]"
+                                        "//div[@class='itembottom']"
+                                        "/span").text
+    DATA['专利量'] = res
+    print(f"专利量: {res}")
 
     # 发明团队
     res = browser.find_element_by_xpath("//div[@class='comdetailstop_right']"
@@ -149,26 +173,30 @@ def E(browser, query):
     time.sleep(5)
     print("加载专利列表...")
 
-    for i in range(10):
-        time.sleep(10)
-        js = 'document.getElementsByClassName("scroll")[0].scrollTop=10000'  # 可
+    for i in range(100):
+        js = f'document.getElementsByClassName("el-table__body-wrapper is-scrolling-left")[0].scrollTop={i*1000}'
         browser.execute_script(js)
+        print("scroll...")
+        time.sleep(2)
     table = browser.find_element_by_tag_name('tbody')
     tr_lst = table.find_elements_by_tag_name('tr')
     print("共有专利: ", len(tr_lst))
-    count = 0
+    DATA['专利申请总量'] = len(tr_lst)
     print(tr_lst)
     for tr in tr_lst:
-        spans = tr.find_elements_by_xpath('//td[3]//p[2]/span')
-        for span in spans:
-            print(span.text)
-        count += 1
-    print("count", count)
+        tmp = {}
+        # 简单法律状态名称
+        res = tr.find_element_by_xpath('//td[47]//p[1]').text
+        tmp['简单法律状态名称'] = res
+        # 专利类型-中文
+        res = tr.find_element_by_xpath('//td[51]//p[1]').text
+        tmp['专利类型-中文'] = res
     return DATA
 
 
 def run(username, pwd, query):
     browser = webdriver.Chrome('chromedriver.exe')
+    browser.maximize_window()  # 最大化
     browser.get(url='https://www.sixlens.com/#/')
     browser.find_element_by_class_name(name='username').find_element_by_tag_name('input').send_keys(username)
     browser.find_element_by_class_name(name='pwd').find_element_by_tag_name('input').send_keys(pwd)
